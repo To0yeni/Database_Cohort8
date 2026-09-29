@@ -1,4 +1,5 @@
 const userModel = require ("../model/userModel.js")
+const bycrypt = require("bcrypt")
 
 //
 //CRUD
@@ -11,9 +12,11 @@ const userModel = require ("../model/userModel.js")
 //CREATE USER
 const createUser = async (req, res) => {
     try {
-    const{name, password} = req.body;
+    const{name, email, password} = req.body;
+    const genSalt = await bycrypt.genSalt(10);
+    const hashedPassword = await bycrypt.hash(password, genSalt);
     const user = await userModel.create({
-        name, password
+        name, email, password: hashedPassword
     })
     res.status(201).json({
         message: "User created successfully",
@@ -22,6 +25,23 @@ const createUser = async (req, res) => {
     }catch (error) {
 res.status(500).json({ message: error.message })
     }
+}
+
+// LOGIN USER
+const loginUser = async (req, res) => {
+    try {
+const {email, password} = req.body;
+const user = await userModel.findOne({ email });
+if (!user) {
+    return res.status(404).json({ message: "User not found" });
+}
+const isMatch = await bycrypt.compare(password, user.password);
+if (!isMatch) {
+    return res.status(401).json({ message: "Invalid credentials" });
+}
+    }catch (error) {
+       return res.status(500).json({ message: error.message })
+    } 
 }
 
 //GENERAL GET
@@ -96,4 +116,4 @@ const deleteUser = async (req, res) => {
 }
 
 
-module.exports = { createUser, getAllUsers, getSingleUser, updateUser, deleteUser };
+module.exports = { createUser, loginUser, getAllUsers, getSingleUser, updateUser, deleteUser };
